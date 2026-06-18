@@ -27,7 +27,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Download CNN/DailyMail and export train/val/test CSVs")
-    parser.add_argument("--dataset", type=str, default="cnn_dailymail")
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default="abisee/cnn_dailymail",
+        help="HF Hub repo id. The unqualified 'cnn_dailymail' id is no longer "
+        "resolvable on the Hub — it now requires the 'namespace/name' form.",
+    )
     parser.add_argument("--version", type=str, default="3.0.0")
     parser.add_argument("--max_train", type=int, default=20000, help="Cap on train examples (0 = no cap, full ~287k)")
     parser.add_argument("--max_val", type=int, default=2000, help="Cap on validation examples (0 = no cap, full ~13k)")
