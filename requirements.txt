@@ -7,3 +7,5 @@ matplotlib>=3.7
 tqdm>=4.66
 jupyter>=1.0
 ipykernel>=6.25
+datasets>=2.19,<3.0
+rich>=10.14,<14
