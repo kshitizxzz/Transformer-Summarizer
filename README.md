@@ -72,7 +72,17 @@ python -m src.evaluation.inference \
 
 ## Evaluation
 
-`src/evaluation/rouge.py` and `src/evaluation/perplexity.py` provide dependency-free ROUGE-1/2/L and perplexity. Save aggregate results + example outputs to `logs/eval_results.json` to populate the **Results** page in the UI:
+`src/evaluation/rouge.py` and `src/evaluation/perplexity.py` provide dependency-free ROUGE-1/2/L and perplexity. Run them over a held-out split with:
+
+```bash
+python -m src.evaluation.evaluate \
+    --data_path data/test.csv \
+    --checkpoint checkpoints/best.pt \
+    --vocab_path data/vocab.json \
+    --max_eval_examples 200
+```
+
+This computes perplexity over the full file, generates summaries (greedy or beam, via `--method`) for up to `--max_eval_examples` articles, scores them with corpus-level ROUGE, and writes the aggregate scores + a few qualitative `(article, reference, generated)` examples to `logs/eval_results.json` — which the **Results** page in the UI reads directly. The resulting file looks like:
 
 ```json
 {
