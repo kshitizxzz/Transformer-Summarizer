@@ -43,7 +43,16 @@ pip install -r requirements.txt
 
 Place a CSV or JSON/JSONL file under `data/` with two text columns (defaults match the CNN/DailyMail convention: `article`, `highlights`). Any dataset with a long-text column and a short-summary column works — pass `--article_col` / `--summary_col` to override the names.
 
+`scripts/download_dataset.py` downloads CNN/DailyMail from the Hugging Face Hub and writes `data/train.csv`, `data/val.csv`, `data/test.csv` directly:
+
+```bash
+pip install -r requirements.txt
+python scripts/download_dataset.py   # caps at 20k/2k/2k by default; pass --max_train 0 etc. for the full split
+```
+
 ## Training
+
+CPU training (e.g. a laptop) is slow with the full dataset — consider a capped subset and/or fewer epochs. For a GPU, `notebooks/colab_train.ipynb` is a ready-to-run Colab notebook: open it in Colab, set the runtime to a GPU, and Run All — it clones this repo, downloads the dataset, trains with `--device cuda`, evaluates, and packages the results for download.
 
 ```bash
 python -m src.training.train \
