@@ -4,6 +4,7 @@ __pycache__/
 
 data/*
 !data/.gitkeep
+!data/vocab.json
 
 checkpoints/*
 !checkpoints/.gitkeep
@@ -11,6 +12,7 @@ checkpoints/*
 logs/*
 !logs/.gitkeep
 !logs/eval_results.json
+!logs/training_history.json
 
 .DS_Store
 .ipynb_checkpoints/
