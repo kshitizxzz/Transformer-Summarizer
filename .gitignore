@@ -10,6 +10,7 @@ checkpoints/*
 
 logs/*
 !logs/.gitkeep
+!logs/eval_results.json
 
 .DS_Store
 .ipynb_checkpoints/
