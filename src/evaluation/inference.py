@@ -48,24 +48,47 @@ class Summarizer:
         max_summary_len: int = 100,
         method: str = "greedy",
         beam_size: int = 4,
+        no_repeat_ngram_size: int = 3,
     ) -> str:
-        """Generate an abstractive summary for a single piece of text."""
+        """Generate an abstractive summary for a single piece of text.
+
+        `no_repeat_ngram_size` blocks any n-gram from repeating in the
+        output (0 disables this) — guards against the repetition loops
+        ("...ever ever ever...") small/undertrained models can fall into.
+        """
         src_tokens = self.tokenizer.tokenize(text)[: max_src_len - 2]
         src_ids = self.vocab.encode(src_tokens, add_special_tokens=True)
         src = torch.tensor([src_ids], dtype=torch.long, device=self.device)
 
         if method == "beam":
             out_ids = self.model.beam_search_decode(
-                src, self.vocab.sos_id, self.vocab.eos_id, max_len=max_summary_len, beam_size=beam_size
+                src,
+                self.vocab.sos_id,
+                self.vocab.eos_id,
+                max_len=max_summary_len,
+                beam_size=beam_size,
+                no_repeat_ngram_size=no_repeat_ngram_size,
             )
         else:
-            out_ids = self.model.greedy_decode(src, self.vocab.sos_id, self.vocab.eos_id, max_len=max_summary_len)
+            out_ids = self.model.greedy_decode(
+                src,
+                self.vocab.sos_id,
+                self.vocab.eos_id,
+                max_len=max_summary_len,
+                no_repeat_ngram_size=no_repeat_ngram_size,
+            )
 
         out_tokens = self.vocab.decode(out_ids[0].tolist(), strip_special=True)
         return self.tokenizer.detokenize(out_tokens)
 
     @torch.no_grad()
-    def get_attention_maps(self, text: str, max_src_len: int = 400, max_summary_len: int = 100) -> dict:
+    def get_attention_maps(
+        self,
+        text: str,
+        max_src_len: int = 400,
+        max_summary_len: int = 100,
+        no_repeat_ngram_size: int = 3,
+    ) -> dict:
         """Generate a summary while also returning attention weights, for
         visualization (see `src.visualization.attention_visualizer`).
         """
@@ -74,7 +97,13 @@ class Summarizer:
         src = torch.tensor([src_ids], dtype=torch.long, device=self.device)
 
         memory, src_mask, enc_attn = self.model.encode(src)
-        out_ids = self.model.greedy_decode(src, self.vocab.sos_id, self.vocab.eos_id, max_len=max_summary_len)
+        out_ids = self.model.greedy_decode(
+            src,
+            self.vocab.sos_id,
+            self.vocab.eos_id,
+            max_len=max_summary_len,
+            no_repeat_ngram_size=no_repeat_ngram_size,
+        )
         _, dec_self_attn, dec_cross_attn = self.model.decode(out_ids, memory, src_mask)
 
         return {
@@ -94,6 +123,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--method", type=str, default="greedy", choices=["greedy", "beam"])
     parser.add_argument("--beam_size", type=int, default=4)
     parser.add_argument("--max_summary_len", type=int, default=100)
+    parser.add_argument(
+        "--no_repeat_ngram_size",
+        type=int,
+        default=3,
+        help="Block repeated n-grams of this size in the output (0 to disable)",
+    )
     return parser.parse_args()
 
 
@@ -101,7 +136,11 @@ def main() -> None:
     args = parse_args()
     summarizer = Summarizer(args.checkpoint, args.vocab_path)
     summary = summarizer.summarize(
-        args.text, method=args.method, beam_size=args.beam_size, max_summary_len=args.max_summary_len
+        args.text,
+        method=args.method,
+        beam_size=args.beam_size,
+        max_summary_len=args.max_summary_len,
+        no_repeat_ngram_size=args.no_repeat_ngram_size,
     )
     print(summary)
 

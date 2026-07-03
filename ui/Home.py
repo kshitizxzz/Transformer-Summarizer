@@ -16,43 +16,77 @@ st.markdown(
     """
 A from-scratch implementation of the Transformer architecture
 (*Attention Is All You Need*, Vaswani et al., 2017) for abstractive
-text summarization — encoder, decoder, multi-head attention,
-positional encodings, training loop, and evaluation, all built without
-relying on a pre-built Transformer library.
+text summarization on CNN/DailyMail. Built without any pre-built
+Transformer library — encoder, decoder, multi-head attention,
+positional encodings, and all evaluation metrics implemented from scratch.
+
+**Also includes:** TF-IDF extractive baseline, Bi-LSTM + Bahdanau attention baseline,
+Logistic Regression sentiment analysis, Random Forest topic classifier, and NER preservation analysis.
 """
 )
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 
 checkpoint_path = PROJECT_ROOT / "checkpoints" / "best.pt"
-vocab_path = PROJECT_ROOT / "data" / "vocab.json"
-history_path = PROJECT_ROOT / "logs" / "training_history.json"
+vocab_path      = PROJECT_ROOT / "data" / "vocab.json"
+history_path    = PROJECT_ROOT / "logs" / "training_history.json"
+results_path    = PROJECT_ROOT / "logs" / "eval_results.json"
 
 with col1:
-    st.metric("Trained checkpoint", "Found" if checkpoint_path.exists() else "Not found")
+    st.metric("Transformer Checkpoint", "Found ✓" if checkpoint_path.exists() else "Not found")
 with col2:
-    st.metric("Vocabulary", "Built" if vocab_path.exists() else "Not built")
+    st.metric("Vocabulary (8K tokens)", "Built ✓" if vocab_path.exists() else "Not built")
 with col3:
-    st.metric("Training logs", "Available" if history_path.exists() else "None yet")
+    st.metric("Training Logs", "Available ✓" if history_path.exists() else "None yet")
+with col4:
+    st.metric("Eval Results", "Available ✓" if results_path.exists() else "None yet")
 
 st.divider()
 
-st.subheader("Get started")
+st.subheader("Project Architecture")
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown("""
+**Main Model: Transformer**
+- 11.68M parameters, from scratch in PyTorch
+- d_model=256, 4 heads, d_ff=1024
+- 3 encoder + 3 decoder layers
+- Sinusoidal positional encoding
+- Xavier initialization, Adam optimizer
+- Gradient clipping, Dropout
+- Teacher forcing during training
+""")
+with col2:
+    st.markdown("""
+**Baselines & Analysis**
+- TF-IDF extractive baseline (classical NLP)
+- Bi-LSTM + Bahdanau attention baseline (RNN-era)
+- Logistic Regression sentiment consistency
+- Random Forest topic classifier (5-fold CV)
+- NER entity preservation analysis
+- N-gram overlap evaluation (unigram/bigram/trigram F1)
+""")
+
+st.divider()
+
+st.subheader("Navigate")
 st.markdown(
     """
-Use the sidebar to navigate:
-
-- **Summarize** — generate a summary for your own text using a trained checkpoint.
-- **Dashboard** — high-level overview of data, model configuration, and status.
-- **Attention Visualizer** — inspect encoder/decoder attention heatmaps.
-- **Training Analytics** — loss curves and learning-rate schedule.
-- **Results** — ROUGE / perplexity scores and example outputs.
-- **About** — architecture details and references.
+- **Summarize** — generate a summary with the trained Transformer
+- **Dashboard** — data, vocab, training status overview
+- **Attention Visualizer** — encoder/decoder attention heatmaps
+- **Training Analytics** — loss curves per epoch
+- **Results** — N-gram overlap metrics, baseline comparison, examples
+- **About** — architecture and references
+- **Baseline Comparison** — TF-IDF vs Bi-LSTM vs Transformer
+- **Sentiment Analysis** — Logistic Regression sentiment consistency
+- **Topic Classifier** — Random Forest news topic classification
+- **NER Analysis** — named entity preservation analysis
 """
 )
 
 if not checkpoint_path.exists():
     st.info(
-        "No trained checkpoint found yet. Train one with:\n\n"
+        "No trained checkpoint found. Train with:\n\n"
         "`python -m src.training.train --train_path data/train.csv --val_path data/val.csv`"
     )

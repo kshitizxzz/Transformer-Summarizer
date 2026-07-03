@@ -49,6 +49,32 @@ def make_tgt_mask(tgt: torch.Tensor, pad_id: int) -> torch.Tensor:
     return pad_mask & causal_mask
 
 
+def _banned_ngram_tokens(generated: torch.Tensor, no_repeat_ngram_size: int) -> List[List[int]]:
+    """For each row of `generated` (batch, seq_len so far), find token ids
+    that would complete an (n-1)-token prefix already seen earlier in that
+    same row — i.e. tokens that should be banned from the *next* step.
+
+    This is the standard "no-repeat-ngram" guard (popularized by fairseq /
+    Hugging Face's generation utilities) against the repetition loops
+    (e.g. "...ever ever ever...") that small or undertrained seq2seq models
+    are prone to under greedy decoding.
+    """
+    batch_size, seq_len = generated.shape
+    banned: List[List[int]] = [[] for _ in range(batch_size)]
+    if no_repeat_ngram_size <= 0 or seq_len + 1 < no_repeat_ngram_size:
+        return banned
+
+    for b in range(batch_size):
+        tokens = generated[b].tolist()
+        seen: dict = {}
+        for i in range(len(tokens) - no_repeat_ngram_size + 1):
+            prefix = tuple(tokens[i : i + no_repeat_ngram_size - 1])
+            seen.setdefault(prefix, set()).add(tokens[i + no_repeat_ngram_size - 1])
+        current_prefix = tuple(tokens[-(no_repeat_ngram_size - 1):])
+        banned[b] = list(seen.get(current_prefix, set()))
+    return banned
+
+
 class Transformer(nn.Module):
     """Encoder-decoder Transformer with a final linear "generator" projecting
     decoder hidden states to vocabulary logits.
@@ -120,11 +146,17 @@ class Transformer(nn.Module):
         sos_id: int,
         eos_id: int,
         max_len: int = 100,
+        no_repeat_ngram_size: int = 3,
     ) -> torch.Tensor:
         """Autoregressively generate output ids one token at a time, always
         picking the highest-probability next token. src: (batch, src_len).
         Returns (batch, generated_len) token ids (including <sos>, excluding
         anything past the first <eos>).
+
+        `no_repeat_ngram_size`: block any token that would complete an
+        n-gram already generated earlier in the sequence (0 disables this).
+        Small/undertrained models are prone to repetition loops under plain
+        greedy decoding; this is the standard guard against that.
         """
         self.eval()
         device = src.device
@@ -138,6 +170,12 @@ class Transformer(nn.Module):
         for _ in range(max_len - 1):
             decoder_out, _, _ = self.decode(ys, memory, src_mask)
             logits = self.generator(decoder_out[:, -1, :])  # (batch, vocab)
+
+            if no_repeat_ngram_size > 0:
+                for b, banned in enumerate(_banned_ngram_tokens(ys, no_repeat_ngram_size)):
+                    if banned:
+                        logits[b, banned] = float("-inf")
+
             next_token = logits.argmax(dim=-1, keepdim=True)  # (batch, 1)
 
             ys = torch.cat([ys, next_token], dim=1)
@@ -156,8 +194,13 @@ class Transformer(nn.Module):
         max_len: int = 100,
         beam_size: int = 4,
         length_penalty: float = 1.0,
+        no_repeat_ngram_size: int = 3,
     ) -> torch.Tensor:
         """Beam search decoding for a single example (batch size 1).
+
+        `no_repeat_ngram_size`: block any token that would complete an
+        n-gram already generated earlier in a given beam's sequence (0
+        disables this) — see `greedy_decode` for why this matters.
 
         Returns the best hypothesis as a (1, gen_len) LongTensor.
         """
@@ -181,6 +224,12 @@ class Transformer(nn.Module):
 
                 decoder_out, _, _ = self.decode(tokens, memory, src_mask)
                 logits = self.generator(decoder_out[:, -1, :])
+
+                if no_repeat_ngram_size > 0:
+                    banned = _banned_ngram_tokens(tokens, no_repeat_ngram_size)[0]
+                    if banned:
+                        logits[0, banned] = float("-inf")
+
                 log_probs = torch.log_softmax(logits, dim=-1).squeeze(0)  # (vocab,)
 
                 topk_log_probs, topk_ids = log_probs.topk(beam_size)

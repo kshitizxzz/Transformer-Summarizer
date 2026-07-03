@@ -9,3 +9,7 @@ jupyter>=1.0
 ipykernel>=6.25
 datasets>=2.19,<3.0
 rich>=10.14,<14
+# Optional: for NER (falls back to rule-based if not installed)
+spacy>=3.5
+# Optional: download spaCy model separately:
+#   python -m spacy download en_core_web_sm

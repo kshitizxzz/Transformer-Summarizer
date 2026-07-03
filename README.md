@@ -79,6 +79,8 @@ python -m src.evaluation.inference \
     --method beam --beam_size 4
 ```
 
+Both greedy and beam decoding block repeated n-grams by default (`--no_repeat_ngram_size 3`, also a slider on the Summarize UI page) — this guards against the repetition loops (e.g. "...ever ever ever...") that small or undertrained models can fall into, especially on out-of-domain input. Pass `--no_repeat_ngram_size 0` to disable it.
+
 ## Evaluation
 
 `src/evaluation/rouge.py` and `src/evaluation/perplexity.py` provide dependency-free ROUGE-1/2/L and perplexity. Run them over a held-out split with:

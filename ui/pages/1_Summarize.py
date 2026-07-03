@@ -34,6 +34,14 @@ else:
         method = st.radio("Method", ["greedy", "beam"], index=0)
         beam_size = st.slider("Beam size", 2, 10, 4, disabled=(method != "beam"))
         max_summary_len = st.slider("Max summary length", 20, 200, 100)
+        no_repeat_ngram_size = st.slider(
+            "Block repeated n-grams of size",
+            0,
+            6,
+            3,
+            help="Prevents the model from looping on the same phrase (e.g. "
+            "'ever ever ever...'). 0 disables this guard.",
+        )
 
     text = st.text_area("Paste an article to summarize", height=300, placeholder="Paste article text here...")
 
@@ -41,7 +49,11 @@ else:
         summarizer = load_summarizer(str(checkpoint_path), str(vocab_path))
         with st.spinner("Generating..."):
             summary = summarizer.summarize(
-                text, method=method, beam_size=beam_size, max_summary_len=max_summary_len
+                text,
+                method=method,
+                beam_size=beam_size,
+                max_summary_len=max_summary_len,
+                no_repeat_ngram_size=no_repeat_ngram_size,
             )
         st.subheader("Summary")
         st.success(summary)
