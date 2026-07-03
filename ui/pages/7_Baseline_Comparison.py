@@ -21,13 +21,8 @@ st.set_page_config(page_title="Baseline Comparison", page_icon="⚖️", layout=
 st.title("⚖️ Baseline Comparison")
 
 st.markdown("""
-This page demonstrates the **evolution of summarization approaches**:
-
-| Method | Approach | Key Concept |
-|--------|----------|-------------|
-| **TF-IDF Baseline** | Extractive — picks existing sentences | TF-IDF scoring, Bag of Words |
-| **Bi-LSTM + Bahdanau** | Abstractive — generates new text | Bidirectional LSTM, Additive Attention |
-| **Transformer** | Abstractive — our main model | Self-Attention, Multi-Head Attention |
+Compare three summarization approaches: TF-IDF extractive, Bi-LSTM + Bahdanau attention,
+and the Transformer — showing how each generates or selects summary text.
 """)
 
 # ------------------------------------------------------------------ #
@@ -73,11 +68,7 @@ if st.button("Run TF-IDF Baseline"):
             })
         st.dataframe(score_data, use_container_width=True)
 
-        st.caption(
-            "**How it works:** Each sentence is represented as a bag of TF-IDF weighted tokens. "
-            "The score = sum of TF-IDF(token) for all tokens in the sentence. "
-            "Higher score = more informative sentence (contains rare but important words)."
-        )
+        st.caption("Sentence score = sum of TF-IDF weights. Higher score = more informative sentence.")
     except Exception as e:
         st.error(f"Error: {e}")
 
@@ -98,14 +89,12 @@ with col1:
     st.markdown("**Architecture:**")
     st.code("""
 Encoder: Bidirectional LSTM
-  - Forward LSTM  (hidden=256)
-  - Backward LSTM (hidden=256)
-  - Concat -> 512-dim representation
+  - Forward + Backward LSTM (hidden=256 each)
+  - Concat -> 512-dim encoder output
 
-Bahdanau Attention:
-  score(s_t, h_i) = v^T tanh(W_a h_i + U_a s_t)
-  alpha = softmax(score)
-  context = sum(alpha * h_i)
+Bahdanau (Additive) Attention:
+  - Decoder attends to all encoder states
+  - Weighted context vector per decoding step
 
 Decoder: Unidirectional LSTM
   - Input: [embed || context]
@@ -114,14 +103,11 @@ Decoder: Unidirectional LSTM
     """, language="text")
 
 with col2:
-    st.markdown("**Why Bi-LSTM + Bahdanau?**")
+    st.markdown("**Bi-LSTM + Bahdanau**")
     st.info(
-        "The **Bidirectional LSTM** reads the source sentence both left-to-right "
-        "and right-to-left, giving each position access to full context.\n\n"
-        "**Bahdanau attention** (2014) was the breakthrough that let decoders "
-        "dynamically focus on relevant source positions at each generation step, "
-        "rather than compressing everything into a fixed vector.\n\n"
-        "This is the direct predecessor to Transformer self-attention."
+        "The Bidirectional LSTM encodes the source in both directions. "
+        "Bahdanau attention lets the decoder dynamically weight encoder states "
+        "at each generation step instead of using a single fixed vector."
     )
 
 bilstm_ckpt = PROJECT_ROOT / "checkpoints" / "bilstm_best.pt"
@@ -172,17 +158,3 @@ comparison = [
 ]
 st.dataframe(comparison, use_container_width=True)
 
-st.subheader("Evolution of Attention")
-st.markdown("""
-```
-1990s  RNN / LSTM
-          ↓ captures sequential context, but bottleneck: fixed vector
-2014   Bahdanau Attention (Additive)
-          ↓ dynamic alignment between decoder and encoder states
-2015   Luong Attention (Multiplicative) -- different formulation
-          ↓ simpler dot-product score
-2017   Transformer: Self-Attention
-          ↓ every position attends to every other simultaneously
-          ↓ parallelizable, captures long-range dependencies better
-```
-""")

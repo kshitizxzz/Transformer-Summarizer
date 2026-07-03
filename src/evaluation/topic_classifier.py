@@ -1,28 +1,11 @@
-"""Topic Classifier: Random Forest on TF-IDF features.
+"""News topic classifier: Random Forest on TF-IDF features.
 
-Trains a Random Forest classifier to assign news articles to topic
-categories. Evaluates per-class precision, recall, and F1 using
-5-fold cross-validation. Also stratifies summarization evaluation
-by topic to show which categories the Transformer handles best.
+Classifies articles into topic categories (politics, sports, business,
+health, crime) and stratifies summarization evaluation by topic.
 
-Concepts used
--------------
-- Random Forest           (ml.pdf: Bagging + Decision Trees)
-- Decision Trees          (ml.pdf: Entropy / Gini / Information Gain)
-- Bagging & Bootstrap     (ml.pdf)
-- 5-fold Cross-Validation (ml.pdf)
-- TF-IDF Feature Engineering (nlp.pdf / ml.pdf)
-- Precision, Recall, F1  (ml.pdf)
-- Confusion Matrix        (ml.pdf)
-- Entropy / Information Gain (ml.pdf: Decision Tree splitting)
-
-Usage
------
-    from src.evaluation.topic_classifier import TopicClassifier
-
-    clf = TopicClassifier(n_trees=50)
+Usage:
+    clf = TopicClassifier(n_trees=30)
     clf.fit(train_texts, train_labels)
-    predictions = clf.predict(test_texts)
     results = clf.cross_validate(texts, labels, k=5)
     print(results["macro_f1"])
 """
@@ -37,10 +20,6 @@ from collections import Counter
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-
-# ---------------------------------------------------------------------------
-# Keyword-based topic labeler (CNN/DailyMail has no explicit topic labels)
-# ---------------------------------------------------------------------------
 
 TOPIC_KEYWORDS: Dict[str, List[str]] = {
     "politics": [
@@ -70,46 +49,31 @@ TOPIC_KEYWORDS: Dict[str, List[str]] = {
     ],
 }
 
+TOPIC_TO_ID = {t: i for i, t in enumerate(["politics", "sports", "business", "health", "crime", "other"])}
+ID_TO_TOPIC = {i: t for t, i in TOPIC_TO_ID.items()}
+
+STOPWORDS = {
+    "a", "an", "the", "is", "are", "was", "were", "be", "been", "have",
+    "has", "had", "do", "does", "did", "to", "of", "in", "for", "on",
+    "with", "at", "by", "from", "as", "and", "but", "or", "not", "it",
+    "its", "he", "she", "they", "we", "i", "that", "this", "said", "new",
+}
+
 
 def assign_topic_label(text: str) -> str:
-    """Assign a topic label based on keyword counts."""
     text_lower = text.lower()
     scores = {
         topic: sum(1 for kw in kws if kw in text_lower)
         for topic, kws in TOPIC_KEYWORDS.items()
     }
     best = max(scores, key=scores.get)
-    if scores[best] == 0:
-        return "other"
-    return best
-
-
-TOPIC_TO_ID = {t: i for i, t in enumerate(["politics", "sports", "business", "health", "crime", "other"])}
-ID_TO_TOPIC = {i: t for t, i in TOPIC_TO_ID.items()}
-
-
-# ---------------------------------------------------------------------------
-# Stopwords and tokenizer
-# ---------------------------------------------------------------------------
-
-STOPWORDS = {
-    "a", "an", "the", "is", "are", "was", "were", "be", "been", "being",
-    "have", "has", "had", "do", "does", "did", "will", "would", "could",
-    "should", "to", "of", "in", "for", "on", "with", "at", "by", "from",
-    "as", "and", "but", "or", "not", "no", "it", "its", "he", "she",
-    "they", "we", "i", "that", "this", "which", "who", "what", "also",
-    "said", "say", "says", "new", "one", "two", "three", "year", "years",
-}
+    return best if scores[best] > 0 else "other"
 
 
 def _tokenize(text: str) -> List[str]:
     text = text.lower().translate(str.maketrans("", "", string.punctuation))
     return [t for t in text.split() if t not in STOPWORDS and len(t) > 2]
 
-
-# ---------------------------------------------------------------------------
-# TF-IDF Vectorizer (from scratch)
-# ---------------------------------------------------------------------------
 
 class TFIDFVectorizer:
     def __init__(self, max_features: int = 3000) -> None:
@@ -148,16 +112,8 @@ class TFIDFVectorizer:
         return [self.transform(t) for t in texts]
 
 
-# ---------------------------------------------------------------------------
-# Decision Tree (for use inside Random Forest)
-# ---------------------------------------------------------------------------
-
 class DecisionTree:
-    """CART decision tree using information gain (entropy) criterion.
-
-    Concepts: entropy, information gain, recursive splitting, max_depth,
-    min_samples_split -- all covered in ml.pdf.
-    """
+    """CART decision tree using information gain (entropy) criterion."""
 
     def __init__(
         self,
@@ -183,64 +139,50 @@ class DecisionTree:
     def _information_gain(
         self, X: List[List[float]], y: List[int], feature: int, threshold: float
     ) -> float:
-        """IG = H(parent) - weighted_avg(H(children))."""
         left_y  = [yi for xi, yi in zip(X, y) if xi[feature] <= threshold]
         right_y = [yi for xi, yi in zip(X, y) if xi[feature] > threshold]
         n = len(y)
         if not left_y or not right_y:
             return 0.0
-        H_parent = self._entropy(y)
+        H_parent   = self._entropy(y)
         H_children = (len(left_y) / n) * self._entropy(left_y) + \
                      (len(right_y) / n) * self._entropy(right_y)
         return H_parent - H_children
 
-    def _best_split(
-        self, X: List[List[float]], y: List[int]
-    ) -> Tuple[int, float, float]:
-        """Find feature + threshold with highest information gain."""
+    def _best_split(self, X: List[List[float]], y: List[int]) -> Tuple[int, float, float]:
         n_features = len(X[0])
         features = list(range(n_features))
         if self.max_features and self.max_features < n_features:
             features = self.rng.sample(features, self.max_features)
-
         best_ig, best_feat, best_thresh = -1.0, 0, 0.0
         for feat in features:
             vals = sorted(set(xi[feat] for xi in X))
             thresholds = [(vals[i] + vals[i + 1]) / 2 for i in range(len(vals) - 1)]
-            for thresh in thresholds[:20]:  # limit for speed
+            for thresh in thresholds[:20]:
                 ig = self._information_gain(X, y, feat, thresh)
                 if ig > best_ig:
                     best_ig, best_feat, best_thresh = ig, feat, thresh
         return best_feat, best_thresh, best_ig
 
     def _build(self, X: List[List[float]], y: List[int], depth: int) -> dict:
-        # Leaf conditions
-        if (depth >= self.max_depth or
-                len(X) < self.min_samples_split or
-                len(set(y)) == 1):
+        if depth >= self.max_depth or len(X) < self.min_samples_split or len(set(y)) == 1:
             label = Counter(y).most_common(1)[0][0]
-            return {"leaf": True, "label": label, "proba": Counter(y)}
-
+            return {"leaf": True, "label": label}
         feat, thresh, ig = self._best_split(X, y)
         if ig <= 0:
             label = Counter(y).most_common(1)[0][0]
-            return {"leaf": True, "label": label, "proba": Counter(y)}
-
+            return {"leaf": True, "label": label}
         left_mask  = [xi[feat] <= thresh for xi in X]
         X_left  = [xi for xi, m in zip(X, left_mask) if m]
         y_left  = [yi for yi, m in zip(y, left_mask) if m]
         X_right = [xi for xi, m in zip(X, left_mask) if not m]
         y_right = [yi for yi, m in zip(y, left_mask) if not m]
-
         if not X_left or not X_right:
             label = Counter(y).most_common(1)[0][0]
-            return {"leaf": True, "label": label, "proba": Counter(y)}
-
+            return {"leaf": True, "label": label}
         return {
-            "leaf": False,
-            "feature": feat,
-            "threshold": thresh,
-            "left":  self._build(X_left,  y_left,  depth + 1),
+            "leaf": False, "feature": feat, "threshold": thresh,
+            "left": self._build(X_left, y_left, depth + 1),
             "right": self._build(X_right, y_right, depth + 1),
         }
 
@@ -259,20 +201,8 @@ class DecisionTree:
         return [self._predict_one(x, self.tree) for x in X]
 
 
-# ---------------------------------------------------------------------------
-# Random Forest (Bagging of Decision Trees)
-# ---------------------------------------------------------------------------
-
 class RandomForest:
-    """Random Forest classifier (Bagging of Decision Trees).
-
-    Each tree:
-      1. Bootstrap sample from training data (sampling with replacement)
-      2. At each split, consider only sqrt(n_features) random features
-      3. Final prediction = majority vote across all trees
-
-    Concepts: Bagging, Bootstrap sampling, Ensemble, Information Gain, Entropy
-    """
+    """Random Forest: bagging of decision trees with random feature subsets."""
 
     def __init__(
         self,
@@ -293,16 +223,13 @@ class RandomForest:
     def _bootstrap_sample(
         self, X: List[List[float]], y: List[int]
     ) -> Tuple[List[List[float]], List[int]]:
-        """Bootstrap: sample n examples WITH replacement."""
         n = len(X)
         indices = [self.rng.randint(0, n - 1) for _ in range(n)]
         return [X[i] for i in indices], [y[i] for i in indices]
 
     def fit(self, X: List[List[float]], y: List[int]) -> "RandomForest":
         n_features = len(X[0])
-        # sqrt(n_features) features per split -- standard RF heuristic
         max_feat = self.max_features or max(1, int(math.sqrt(n_features)))
-
         self.trees = []
         for i in range(self.n_trees):
             X_boot, y_boot = self._bootstrap_sample(X, y)
@@ -317,18 +244,12 @@ class RandomForest:
         return self
 
     def predict(self, X: List[List[float]]) -> List[int]:
-        """Majority vote across all trees."""
         all_preds = [tree.predict(X) for tree in self.trees]
-        final = []
-        for i in range(len(X)):
-            votes = Counter(preds[i] for preds in all_preds)
-            final.append(votes.most_common(1)[0][0])
-        return final
+        return [
+            Counter(preds[i] for preds in all_preds).most_common(1)[0][0]
+            for i in range(len(X))
+        ]
 
-
-# ---------------------------------------------------------------------------
-# Main classifier with evaluation
-# ---------------------------------------------------------------------------
 
 class TopicClassifier:
     """End-to-end topic classifier: TF-IDF features -> Random Forest."""
@@ -368,91 +289,31 @@ class TopicClassifier:
         accuracy = sum(1 for a, b in zip(y_true, y_pred) if a == b) / len(y_true)
         return {"per_class": per_class, "macro_f1": round(macro_f1, 4), "accuracy": round(accuracy, 4)}
 
-    def cross_validate(
-        self, texts: List[str], labels: List[int], k: int = 5
-    ) -> Dict:
-        """k-fold cross-validation.
-
-        Splits data into k folds, trains on k-1, evaluates on 1, repeats.
-        Returns averaged macro F1 across all folds.
-        """
+    def cross_validate(self, texts: List[str], labels: List[int], k: int = 5) -> Dict:
+        """k-fold cross-validation."""
         n = len(texts)
         fold_size = n // k
         indices = list(range(n))
         random.Random(42).shuffle(indices)
-
-        fold_results = []
         all_unique_labels = sorted(set(labels))
-
+        fold_results = []
         for fold in range(k):
             val_idx   = indices[fold * fold_size: (fold + 1) * fold_size]
             train_idx = indices[:fold * fold_size] + indices[(fold + 1) * fold_size:]
-
-            X_train = [texts[i] for i in train_idx]
-            y_train = [labels[i] for i in train_idx]
-            X_val   = [texts[i] for i in val_idx]
-            y_val   = [labels[i] for i in val_idx]
-
-            # Fresh vectorizer + RF per fold
-            fold_clf = TopicClassifier(
-                n_trees=self.rf.n_trees, max_depth=self.rf.max_depth
-            )
-            fold_clf.fit(X_train, y_train)
-            y_pred = fold_clf.predict(X_val)
-
-            metrics = self._prf1_multiclass(y_val, y_pred, all_unique_labels)
+            fold_clf  = TopicClassifier(n_trees=self.rf.n_trees, max_depth=self.rf.max_depth)
+            fold_clf.fit([texts[i] for i in train_idx], [labels[i] for i in train_idx])
+            y_pred    = fold_clf.predict([texts[i] for i in val_idx])
+            metrics   = self._prf1_multiclass([labels[i] for i in val_idx], y_pred, all_unique_labels)
             fold_results.append(metrics)
-            print(f"  Fold {fold + 1}/{k}: macro F1 = {metrics['macro_f1']:.4f}, "
-                  f"accuracy = {metrics['accuracy']:.4f}")
-
-        avg_macro_f1 = sum(r["macro_f1"] for r in fold_results) / k
-        avg_accuracy = sum(r["accuracy"] for r in fold_results) / k
-
+            print(f"  Fold {fold + 1}/{k}: macro F1 = {metrics['macro_f1']:.4f}")
         return {
             "k_folds": k,
-            "macro_f1": round(avg_macro_f1, 4),
-            "accuracy": round(avg_accuracy, 4),
+            "macro_f1":  round(sum(r["macro_f1"]  for r in fold_results) / k, 4),
+            "accuracy":  round(sum(r["accuracy"]  for r in fold_results) / k, 4),
             "fold_details": fold_results,
         }
-
-    def label_texts(self, texts: List[str]) -> List[str]:
-        """Return topic names for a list of texts (using keyword labeler)."""
-        return [assign_topic_label(t) for t in texts]
 
     def save_results(self, results: Dict, output_path: str) -> None:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w") as f:
             json.dump(results, f, indent=2)
-        print(f"Topic classifier results saved to {output_path}")
-
-
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
-
-if __name__ == "__main__":
-    # Quick demo
-    texts = [
-        "The president signed a new law in Congress today.",
-        "The team won the championship in the final game.",
-        "Stock market hit record highs as profits surged.",
-        "Doctors found a new treatment for the disease.",
-        "Police arrested the suspect in the shooting case.",
-        "The senator voted against the bill in parliament.",
-        "Athletes competed in the Olympic basketball tournament.",
-        "The company reported billion dollar revenue growth.",
-        "Hospital patients received the new vaccine therapy.",
-        "Criminal was convicted and sentenced to prison.",
-    ]
-    labels_str = [assign_topic_label(t) for t in texts]
-    labels_int = [TOPIC_TO_ID.get(l, TOPIC_TO_ID["other"]) for l in labels_str]
-
-    print("Auto-assigned labels:")
-    for t, l in zip(texts, labels_str):
-        print(f"  [{l}] {t[:60]}")
-
-    print("\nRunning 3-fold CV...")
-    clf = TopicClassifier(n_trees=10, max_depth=5)
-    results = clf.cross_validate(texts, labels_int, k=3)
-    print(f"\nMacro F1 (3-fold CV): {results['macro_f1']:.4f}")
-    print(f"Accuracy (3-fold CV): {results['accuracy']:.4f}")

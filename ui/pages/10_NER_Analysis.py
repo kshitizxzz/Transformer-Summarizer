@@ -2,8 +2,6 @@
 
 Shows how well the Transformer preserves named entities (people, places,
 organizations) from source articles in the generated summaries.
-
-Concepts: Named Entity Recognition (nlp.pdf), Precision/Recall/F1 (ml.pdf)
 """
 
 import json
@@ -25,8 +23,6 @@ st.markdown("""
 
 **Method:** Apply Named Entity Recognition (NER) to both the source and summary.
 Compute entity recall = entities appearing in summary / entities in source.
-
-**Concepts:** Named Entity Recognition (nlp.pdf), Precision/Recall/F1 (ml.pdf)
 
 **Entity types tracked:** PERSON, ORGANIZATION, LOCATION, COUNTRY, EVENT
 """)
@@ -95,31 +91,6 @@ except Exception as e:
     st.error(f"Could not load NER module: {e}")
 
 st.divider()
-
-# ------------------------------------------------------------------ #
-# How NER works
-# ------------------------------------------------------------------ #
-st.subheader("How NER Works")
-col1, col2 = st.columns(2)
-with col1:
-    st.markdown("**spaCy NER (when available):**")
-    st.info(
-        "spaCy uses a deep learning model trained on annotated text to identify and "
-        "classify named entities:\n"
-        "- **PERSON**: Barack Obama, John Smith\n"
-        "- **ORG**: Apple Inc., United Nations\n"
-        "- **GPE**: Washington D.C., France\n"
-        "- **LOC**: the Pacific Ocean, Mount Everest\n"
-        "- **EVENT**: World War II, the Olympics"
-    )
-with col2:
-    st.markdown("**Rule-based NER (fallback):**")
-    st.info(
-        "When spaCy is unavailable, we extract **capitalized noun phrases** "
-        "(consecutive capitalized words) as candidate entities.\n\n"
-        "Example: 'President Barack Obama' → entity: 'Barack Obama'\n\n"
-        "This covers most proper nouns in news text without requiring a model."
-    )
 
 # ------------------------------------------------------------------ #
 # Corpus results

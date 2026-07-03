@@ -4,8 +4,8 @@ Evaluates the trained Transformer against:
   1. TF-IDF extractive baseline
   2. (Optional) Bi-LSTM + Bahdanau attention baseline
 
-Metrics computed (all from scratch, no external eval libraries):
-  - Unigram / Bigram / Trigram overlap F1 (N-gram theory from nlp.pdf)
+Metrics computed (all from scratch):
+  - Unigram / Bigram / Trigram overlap F1
   - LCS (Longest Common Subsequence) F1
   - NER entity preservation rate
   - Sentiment consistency rate

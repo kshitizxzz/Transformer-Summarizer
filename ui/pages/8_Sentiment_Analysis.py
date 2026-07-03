@@ -26,9 +26,6 @@ st.markdown("""
 1. Train a **Logistic Regression** classifier on TF-IDF features to predict sentiment
 2. Apply it to both the source article and generated summary
 3. Measure **consistency rate** = fraction of pairs where sentiment matches
-
-**Concepts used:** Sentiment Analysis (nlp.pdf), Logistic Regression (ml.pdf),
-TF-IDF Feature Engineering (nlp.pdf), Precision/Recall/F1 (ml.pdf)
 """)
 
 st.divider()

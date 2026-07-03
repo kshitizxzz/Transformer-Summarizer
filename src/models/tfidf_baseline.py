@@ -4,18 +4,6 @@ Implements a classical NLP extractive summarizer using TF-IDF sentence
 scoring. Each sentence in the article gets a score = sum of TF-IDF weights
 of its tokens. The top-k sentences (by score) are returned as the summary.
 
-This serves as a classical NLP baseline to compare against the Transformer
-abstractive model. The comparison directly demonstrates the gap between
-bag-of-words extractive methods and neural abstractive generation.
-
-Concepts used
--------------
-- TF-IDF (Term Frequency - Inverse Document Frequency)
-- Bag of Words sentence representation
-- Stopword removal
-- N-gram tokenization
-- Cosine similarity (optional: rank by cosine sim to full doc centroid)
-
 Usage
 -----
     from src.models.tfidf_baseline import TFIDFSummarizer

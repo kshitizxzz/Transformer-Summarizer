@@ -7,20 +7,6 @@ Extends the base tokenizer with advanced NLP preprocessing techniques:
   - POS-tag-aware filtering (optional)
   - HTML / noise cleanup
 
-This module demonstrates the full NLP preprocessing pipeline studied in the
-NLP coursework: text cleaning -> tokenization -> stopword removal ->
-lemmatization/stemming -> feature representation.
-
-Concepts used
--------------
-- Tokenization                    (nlp.pdf)
-- Stopword removal                (nlp.pdf)
-- Lemmatization (WordNet)         (nlp.pdf)
-- Stemming (Porter Stemmer)       (nlp.pdf)
-- HTML/noise cleanup              (nlp.pdf)
-- NLP Pipeline                   (nlp.pdf)
-- Vocabulary building stats       (nlp.pdf / ml.pdf)
-
 Usage
 -----
     from src.preprocessing.enhanced_preprocessor import EnhancedPreprocessor

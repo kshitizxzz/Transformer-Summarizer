@@ -1,12 +1,9 @@
 """Bi-LSTM Encoder + Bahdanau (Additive) Attention Decoder.
 
 This module implements a sequence-to-sequence model using:
-  - Bidirectional LSTM encoder  (deep.pdf: Bidirectional LSTM)
-  - Bahdanau additive attention  (deep.pdf: Attention Mechanism / Bahdanau 2014)
+  - Bidirectional LSTM encoder
+  - Bahdanau additive attention
   - Unidirectional LSTM decoder
-
-This serves as a baseline to compare against the Transformer. The comparison
-shows the evolution: RNN -> Attention -> Transformer (self-attention).
 
 Architecture
 ------------
@@ -262,10 +259,7 @@ class BahdanauDecoder(nn.Module):
 # ---------------------------------------------------------------------------
 
 class BiLSTMBahdanauSeq2Seq(nn.Module):
-    """Full encoder-decoder seq2seq with Bidirectional LSTM + Bahdanau attention.
-
-    This is the baseline model against which the Transformer is compared.
-    """
+    """Full encoder-decoder seq2seq with Bidirectional LSTM + Bahdanau attention."""
 
     def __init__(self, config: BiLSTMConfig) -> None:
         super().__init__()

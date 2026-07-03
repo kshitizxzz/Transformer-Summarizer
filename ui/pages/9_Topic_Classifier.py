@@ -1,11 +1,8 @@
 """Topic Classifier Page.
 
 Trains a Random Forest classifier (TF-IDF features -> news topic) and
-evaluates it with 5-fold cross-validation. Also shows per-topic summarization
-performance to reveal which news categories the Transformer handles best.
-
-Concepts: Random Forest, Decision Trees, Bagging, Bootstrap, 5-fold CV,
-          Entropy/Information Gain, TF-IDF, Precision/Recall/F1 (ml.pdf)
+evaluates with 5-fold cross-validation. Also shows per-topic summarization
+performance by news category.
 """
 
 import json
@@ -22,12 +19,9 @@ st.set_page_config(page_title="Topic Classifier", page_icon="🌲", layout="wide
 st.title("🌲 Random Forest Topic Classifier")
 
 st.markdown("""
-**Goal:** Classify news articles by topic (Politics, Sports, Business, Health, Crime)
-using a **Random Forest** trained on **TF-IDF features**, then stratify the
-Transformer's summarization performance by topic.
-
-**Concepts:** Random Forest (Bagging + Decision Trees), Bootstrap Sampling,
-Information Gain / Entropy, 5-fold Cross-Validation, TF-IDF Feature Engineering
+Classifies news articles by topic (Politics, Sports, Business, Health, Crime) using a
+**Random Forest** trained on **TF-IDF features**, then stratifies the Transformer's
+summarization performance by topic.
 """)
 
 # ------------------------------------------------------------------ #
@@ -109,34 +103,6 @@ except Exception as e:
     st.error(f"Could not load topic classifier: {e}")
 
 st.divider()
-
-# ------------------------------------------------------------------ #
-# Decision Tree / Information Gain explainer
-# ------------------------------------------------------------------ #
-st.subheader("Decision Tree: Entropy and Information Gain")
-
-col1, col2 = st.columns(2)
-with col1:
-    st.markdown("**Entropy (Impurity measure):**")
-    st.latex(r"H(S) = -\sum_{c} p_c \log_2 p_c")
-    st.code("""
-# Pure node (all same class): H = 0
-# Max impurity (equal split): H = log2(num_classes)
-
-# Example: 60 politics, 40 sports
-H = -(0.6 * log2(0.6) + 0.4 * log2(0.4))
-H = 0.971  # bits
-    """, language="python")
-
-with col2:
-    st.markdown("**Information Gain:**")
-    st.latex(r"IG = H(parent) - \frac{|left|}{n} H(left) - \frac{|right|}{n} H(right)")
-    st.code("""
-# Best split = feature + threshold that maximizes IG
-# Random Forest: at each node, consider only
-#   sqrt(n_features) randomly selected features
-# -> reduces correlation between trees
-    """, language="python")
 
 # ------------------------------------------------------------------ #
 # Results from eval_results.json
