@@ -74,15 +74,18 @@ def entity_overlap(source_entities: Set[str], summary_entities: Set[str]) -> Dic
                 "source_count": 0, "summary_count": len(summary_entities), "overlap_count": 0}
     src_norm  = {e.lower().strip() for e in source_entities}
     summ_norm = {e.lower().strip() for e in summary_entities}
-    overlap   = sum(1 for se in src_norm if any(se in ss or ss in se for ss in summ_norm))
-    p  = overlap / len(summ_norm) if summ_norm else 0.0
-    r  = overlap / len(src_norm)
+    # Recall: how many source entities appear in summary
+    recall_overlap = sum(1 for se in src_norm if any(se in ss or ss in se for ss in summ_norm))
+    # Precision: how many summary entities came from source
+    prec_overlap   = sum(1 for ss in summ_norm if any(se in ss or ss in se for se in src_norm))
+    p  = prec_overlap   / len(summ_norm) if summ_norm else 0.0
+    r  = recall_overlap / len(src_norm)
     f1 = 2 * p * r / (p + r) if (p + r) else 0.0
     return {
         "precision": round(p, 4), "recall": round(r, 4), "f1": round(f1, 4),
         "source_count":   len(source_entities),
         "summary_count":  len(summary_entities),
-        "overlap_count":  overlap,
+        "overlap_count":  recall_overlap,
         "source_entities":  sorted(source_entities),
         "summary_entities": sorted(summary_entities),
     }

@@ -134,7 +134,7 @@ if cv_results:
 if per_topic:
     st.subheader("Per-Topic N-gram Overlap (Transformer)")
     topic_rows = [
-        {"Topic": t, "Count": v["count"],
+        {"Topic": t.title(), "Count": v["count"],
          "Unigram F1": v["unigram_f1"], "Bigram F1": v["bigram_f1"]}
         for t, v in sorted(per_topic.items(), key=lambda x: -x[1]["unigram_f1"])
     ]

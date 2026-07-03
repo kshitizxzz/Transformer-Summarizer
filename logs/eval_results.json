@@ -56,9 +56,9 @@
       "avg_entity_f1": 0.0
     },
     "tfidf_baseline": {
-      "avg_entity_recall": 0.0,
-      "avg_entity_precision": 0.0,
-      "avg_entity_f1": 0.0
+      "avg_entity_recall": 0.5357,
+      "avg_entity_precision": 1.0,
+      "avg_entity_f1": 0.6667
     }
   },
   "topic_classifier": {
