@@ -7,6 +7,7 @@ TF-IDF features to predict positive/negative sentiment.
 Concepts: Sentiment Analysis, Logistic Regression, TF-IDF, Precision/Recall/F1
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -159,7 +160,6 @@ st.info(
 # ------------------------------------------------------------------ #
 # Corpus results (from eval_results.json)
 # ------------------------------------------------------------------ #
-import json
 results_path = PROJECT_ROOT / "logs" / "eval_results.json"
 if results_path.exists():
     with open(results_path) as f:

@@ -35,8 +35,11 @@ summarization (article → short summary).
 
 #### Evaluation
 
-- ROUGE-1 / ROUGE-2 / ROUGE-L (implemented from scratch).
-- Perplexity.
+- N-gram overlap: unigram, bigram, trigram, and LCS F1 (all from scratch).
+- Sentiment consistency: Logistic Regression on TF-IDF features.
+- NER entity preservation: named entity recall/precision/F1 (spaCy or rule-based fallback).
+- Topic classification: Random Forest on TF-IDF features, 5-fold cross-validation.
+- Baselines: TF-IDF extractive and Bi-LSTM + Bahdanau attention.
 
 #### Tech stack
 
