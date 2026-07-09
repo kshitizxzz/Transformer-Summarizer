@@ -1,17 +1,17 @@
 """Training Analytics: loss curves and learning-rate schedule from training logs."""
 
-import math
 import sys
+import math
 from pathlib import Path
 
-import plotly.graph_objects as go
 import streamlit as st
+import plotly.graph_objects as go
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.visualization.training_plots import load_history, plot_learning_rate, plot_loss_curves  # noqa: E402
+from src.visualization.training_plots import load_history, plot_learning_rate, plot_loss_curves
 
 st.set_page_config(page_title="Training Analytics", page_icon="📈", layout="wide")
 st.title("📈 Training Analytics")
@@ -45,7 +45,7 @@ else:
         fig_perp.update_layout(
             title="Validation perplexity over epochs",
             xaxis_title="Epoch",
-            yaxis_title="Perplexity",
+            yaxis_title="Perplexity"
         )
         st.plotly_chart(fig_perp, use_container_width=True)
 

@@ -36,7 +36,7 @@ class LabelSmoothingLoss(nn.Module):
         log_probs = torch.log_softmax(logits, dim=-1)
 
         true_dist = torch.zeros_like(log_probs)
-        true_dist.fill_(self.smoothing / (self.vocab_size - 2))  # exclude pad + gold slot
+        true_dist.fill_(self.smoothing / (self.vocab_size - 1))  # exclude pad + gold slot
         true_dist.scatter_(1, target.unsqueeze(1), self.confidence)
         true_dist[:, self.pad_id] = 0.0
 
@@ -137,8 +137,8 @@ class Trainer:
             loss = self._run_batch(batch)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
-            self.scheduler.step()
             self.optimizer.step()
+            self.scheduler.step()
 
             total_loss += loss.item()
             total_batches += 1
@@ -186,7 +186,7 @@ class Trainer:
             # Without a val_loader, val_loss is nan; fall back to train_loss so
             # best.pt still gets written (the UI and inference CLI default to it).
             tracked_loss = train_loss if math.isnan(val_loss) else val_loss
-            if tracked_loss < self.best_val_loss:
+            if not (tracked_loss != tracked_loss) and tracked_loss < self.best_val_loss:
                 self.best_val_loss = tracked_loss
                 self.save_checkpoint(self.checkpoint_dir / "best.pt")
 
